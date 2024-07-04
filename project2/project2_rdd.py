@@ -14,9 +14,7 @@ class Project2:
         
         # 2.load file
             # 2.0 load stopwords file
-        with open(stopwords, 'r') as f:
-            stopwords_list = [line.strip() for line in f]
-        
+        stopwords_list = sc.textFile(stopwords).collect()
             # 2.1 broadcast stopword_list 
         broadcast_stopwords = sc.broadcast(stopwords_list)
         
@@ -57,7 +55,9 @@ class Project2:
             if len(line[1])<3:
                 invalid_line[line[0]] += 1
             else:
-                valid_line[line[0]] +=1 
+                valid_line[line[0]] +=1
+        # defaultdict(<class 'int'>, {'technology': 6, 'business': 5, 'medicine': 5}) 
+        
         traids_count = sc.parallelize(traids_count).flatMap(get_triad_frequency)\
                                 .map(lambda traid: (traid, 1))\
                                 .reduceByKey(lambda a, b: a+b)
@@ -74,20 +74,29 @@ class Project2:
                                           .join(valid_line) \
                                           .map(lambda x: (x[0], x[1][0][0], x[1][0][1] / x[1][1]))
         
-        
+        triad_relative_freq.foreach(print)
         
         top_k_triads = triad_relative_freq.map(lambda x: (x[0], (x[1], x[2]))) \
                                           .groupByKey()\
                                           .flatMap(lambda x: [(x[0], triad[0], triad[1]) for triad in sorted(x[1], key=lambda y: -y[1])[:int(k)]]).sortBy(lambda x:x[0])
-
+        top_k_triads.foreach(print)
+        """
         
+        ('business', ('discouraging', 'news', 'stocks'), 0.6)
+        ('business', ('asia', 'discouraging', 'stocks'), 0.6)
+        ('medicine', ('blood', 'contamination', 'hospital'), 0.6)
+        ('medicine', ('blood', 'hospital', 'patients'), 0.4)
+        ('technology', ('cutting', 'jobs', 'microsoft'), 0.5)
+        ('technology', ('android', 'google', 'sdk'), 0.3333333333333333)
+        """
         
         invalid_line_broadcast = sc.broadcast(dict(invalid_line.items()))
         final_result = top_k_triads.map(lambda x: (x[0], f"{x[0]}\t{','.join(x[1])}:{x[2]}")) \
                                 .groupByKey() \
                                 .flatMap(lambda x: [f"{x[0]}\tinvalid line:{invalid_line_broadcast.value[x[0]]}"] + list(x[1]))\
                                 .sortBy(lambda x: x.split('\t')[0])
-        final_result.foreach(print)
+    
+
 
         sc.stop()
 
