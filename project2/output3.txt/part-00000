@@ -1,0 +1,8 @@
+business	invalid line:2
+business	discouraging,news,stocks:0.6
+business	asia,discouraging,stocks:0.6
+business	asia,news,stocks:0.6
+medicine	invalid line:1
+medicine	blood,contamination,hospital:0.6
+medicine	blood,hospital,patients:0.4
+medicine	contamination,hospital,patients:0.4
